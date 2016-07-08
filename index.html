@@ -1,0 +1,285 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Flappy Bird Game</title>
+	<script src="sprite.js"></script>
+	<link rel="icon" type="image/ico" href="./resources/favicon.ico">
+	<style>
+	*{
+		padding: 0;
+		margin: 0;
+		outline: none;
+	}
+	canvas {
+		display: block;
+		position: absolute;
+		margin: auto;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		cursor: pointer;
+	}
+	footer{
+		width: 100%;
+		background-color: #000000;
+		bottom: 0;
+		position: absolute;
+		height: 30px;
+		color: #FFFFFF;
+		text-align: center;
+		padding:20px 0;
+		font-weight: bold;
+		opacity: 0.9;
+	}
+	footer span{color: #4A148C; }
+	footer a {color: #4A148C; text-decoration: none;}
+
+	</style>
+</head>
+<body>
+	<a href="https://github.com/FC-Lucas/snack-js" class="github-corner"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+	<footer>
+		<p>
+			Created With
+			<span>❤</span>
+			By
+			<a href="http://github.com/fc-lucas">FC Lucas</a>
+		</p>
+	</footer>
+	<script>
+			var
+			canvas,
+			ctx,
+			width,
+			height,
+			fgpos = 0,
+			frames = 0,
+			score = 0,
+			best = localStorage.getItem("best") || 0,
+			currentstate,
+			states = {
+				Splash: 0, Game: 1, Score: 2
+			},
+			okbtn,
+			bird = {
+				x: 60,
+				y: 0,
+				frame: 0,
+				velocity: 0,
+				animation: [0, 1, 2, 1],
+				rotation: 0,
+				radius: 12,
+				gravity: 0.25,
+				_jump: 4.6,
+				jump: function() {
+					this.velocity = -this._jump;
+				},
+				update: function() {
+					var n = currentstate === states.Splash ? 10 : 5;
+					this.frame += frames % n === 0 ? 1 : 0;
+					this.frame %= this.animation.length;
+					if (currentstate === states.Splash) {
+						this.y = height - 280 + 5*Math.cos(frames/10);
+						this.rotation = 0;
+					} else {
+						this.velocity += this.gravity;
+						this.y += this.velocity;
+						if (this.y >= height - s_fg.height-10) {
+							this.y = height - s_fg.height-10;
+							if (currentstate === states.Game) {
+								currentstate = states.Score;
+							}
+							this.velocity = this._jump;
+						}
+						if (this.velocity >= this._jump) {
+							this.frame = 1;
+							this.rotation = Math.min(Math.PI/2, this.rotation + 0.3);
+						} else {
+							this.rotation = -0.3;
+						}
+					}
+				},
+
+				draw: function(ctx) {
+					ctx.save();
+					ctx.translate(this.x, this.y);
+					ctx.rotate(this.rotation);
+					var n = this.animation[this.frame];
+					s_bird[n].draw(ctx, -s_bird[n].width/2, -s_bird[n].height/2);
+					ctx.restore();
+				}
+			},
+
+			pipes = {
+				_pipes: [],
+				reset: function() {
+					this._pipes = [];
+				},
+
+				update: function() {
+					if (frames % 100 === 0) {
+						var _y = height - (s_pipeSouth.height+s_fg.height+120+200*Math.random());
+						this._pipes.push({
+							x: 500,
+							y: _y,
+							width: s_pipeSouth.width,
+							height: s_pipeSouth.height
+						});
+					}
+
+					for (var i = 0, len = this._pipes.length; i < len; i++) {
+						var p = this._pipes[i];
+						if (i === 0) {
+							score += p.x === bird.x ? 1 : 0;
+							var cx  = Math.min(Math.max(bird.x, p.x), p.x+p.width);
+							var cy1 = Math.min(Math.max(bird.y, p.y), p.y+p.height);
+							var cy2 = Math.min(Math.max(bird.y, p.y+p.height+80), p.y+2*p.height+80);
+							var dx  = bird.x - cx;
+							var dy1 = bird.y - cy1;
+							var dy2 = bird.y - cy2;
+							var d1 = dx*dx + dy1*dy1;
+							var d2 = dx*dx + dy2*dy2;
+							var r = bird.radius*bird.radius;
+							if (r > d1 || r > d2) {
+								currentstate = states.Score;
+							}
+						}
+						p.x -= 2;
+						if (p.x < -p.width) {
+							this._pipes.splice(i, 1);
+							i--;
+							len--;
+						}
+					}
+				},
+
+
+				draw: function(ctx) {
+					for (var i = 0, len = this._pipes.length; i < len; i++) {
+						var p = this._pipes[i];
+						s_pipeSouth.draw(ctx, p.x, p.y);
+						s_pipeNorth.draw(ctx, p.x, p.y+80+p.height);
+					}
+				}
+			};
+
+
+			function onpress(evt) {
+				switch (currentstate) {
+
+					case states.Splash:
+						currentstate = states.Game;
+						bird.jump();
+						break;
+					case states.Game:
+						bird.jump();
+						break;
+					case states.Score:
+						var mx = evt.offsetX, my = evt.offsetY;
+						if (mx == null || my == null) {
+							mx = evt.touches[0].clientX;
+							my = evt.touches[0].clientY;
+						}
+
+						if (okbtn.x < mx && mx < okbtn.x + okbtn.width &&
+							okbtn.y < my && my < okbtn.y + okbtn.height
+						) {
+							pipes.reset();
+							currentstate = states.Splash;
+							score = 0;
+						}
+						break;
+				}
+			}
+
+
+			function main() {
+				canvas = document.createElement("canvas");
+				width = window.innerWidth;
+				height = window.innerHeight;
+				var evt = "touchstart";
+				if (width >= 500) {
+					width  = 320;
+					height = 480;
+					canvas.style.border = "1px solid #000";
+					evt = "mousedown";
+				}
+
+				document.addEventListener(evt, onpress);
+				canvas.width = width;
+				canvas.height = height;
+				if (!(!!canvas.getContext && canvas.getContext("2d"))) {
+					alert("Your browser doesn't support HTML5");
+				}
+				ctx = canvas.getContext("2d");
+				currentstate = states.Splash;
+
+				document.body.appendChild(canvas);
+
+				var img = new Image();
+				img.onload = function() {
+					initSprites(this);
+					ctx.fillStyle = s_bg.color;
+					okbtn = {
+						x: (width - s_buttons.Ok.width)/2,
+						y: height - 200,
+						width: s_buttons.Ok.width,
+						height: s_buttons.Ok.height
+					}
+					run();
+				}
+				img.src = "./resources/sprite.png";
+			}
+
+			function run() {
+				var loop = function() {
+					update();
+					render();
+					window.requestAnimationFrame(loop, canvas);
+				}
+				window.requestAnimationFrame(loop, canvas);
+			}
+
+			function update() {
+				frames++;
+				if (currentstate !== states.Score) {
+					fgpos = (fgpos - 2) % 14;
+				} else {
+					best = Math.max(best, score);
+					localStorage.setItem("best", best);
+				}
+				if (currentstate === states.Game) {
+					pipes.update();
+				}
+				bird.update();
+			}
+
+			function render() {
+				ctx.fillRect(0, 0, width, height);
+				s_bg.draw(ctx, 0, height - s_bg.height);
+				s_bg.draw(ctx, s_bg.width, height - s_bg.height);
+				pipes.draw(ctx);
+				bird.draw(ctx);
+				s_fg.draw(ctx, fgpos, height - s_fg.height);
+				s_fg.draw(ctx, fgpos+s_fg.width, height - s_fg.height);
+				var width2 = width/2;
+				if (currentstate === states.Splash) {
+					s_splash.draw(ctx, width2 - s_splash.width/2, height - 300);
+					s_text.GetReady.draw(ctx, width2 - s_text.GetReady.width/2, height-380);
+				}
+				if (currentstate === states.Score) {
+					s_text.GameOver.draw(ctx, width2 - s_text.GameOver.width/2, height-400);
+					s_score.draw(ctx, width2 - s_score.width/2, height-340);
+					s_buttons.Ok.draw(ctx, okbtn.x, okbtn.y);
+					s_numberS.draw(ctx, width2-47, height-304, score, null, 10);
+					s_numberS.draw(ctx, width2-47, height-262, best, null, 10);
+				} else {
+					s_numberB.draw(ctx, null, 20, score, width2);
+				}
+			}
+			main();
+	</script>
+</body>
+</html>
